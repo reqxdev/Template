@@ -1,0 +1,50 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+}
+
+def modEntrypoint = "dev.Template"
+def modSource = file("src/master/java/dev/Template.java").text
+def modIdMatcher = modSource =~ /MOD_ID\s*=\s*"([^"]+)"/
+
+if (!modIdMatcher.find()) {
+	throw new GradleException("Template.java must define MOD_ID as a string constant.")
+}
+
+def modId = modIdMatcher.group(1)
+
+loom {
+	mods {
+		create(modId) {
+			sourceSet sourceSets.main
+		}
+	}
+}
+
+sourceSets {
+	main {
+		java.srcDirs = ["src/master/java"]
+		resources.srcDirs = ["src/master/java/dev"]
+		resources.exclude "**/*.java"
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+}
+
+processResources {
+	inputs.properties([mod_id: modId, mod_entrypoint: modEntrypoint])
+
+	filesMatching("fabric.mod.json") {
+		expand([mod_id: modId, mod_entrypoint: modEntrypoint])
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+}
+
+tasks.named("jar") {
+	archiveFileName = "${modId}.jar"
+}
